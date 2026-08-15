@@ -12,6 +12,8 @@
   
   <!-- Ethers.js v6 via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <!-- Environment Config -->
+  <script src="config.js"></script>
 
   <style>
     :root {
@@ -238,8 +240,8 @@
       return new Promise((resolve, reject) => {
         // Initialize IDKit with settings
         IDKit.init({
-          app_id: "app_staging_vibepoll", // Your World ID App ID
-          action: actionId,               // The specific action (protects against reuse)
+          app_id: window.APP_CONFIG.APP_ID || "app_staging_vibepoll", // Your World ID App ID
+          action: actionId || window.APP_CONFIG.ACTION_ID || "login",               // The specific action (protects against reuse)
           signal: walletAddress,          // Locks proof to the user's wallet address
           onSuccess: (result) => resolve(result),
           onError: (error) => reject(error)
@@ -259,7 +261,7 @@
     const proofRoot = document.getElementById('proof-root');
     const proofNullifier = document.getElementById('proof-nullifier');
 
-    const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Deployed HumanVerifier address
+    const contractAddress = window.APP_CONFIG.CONTRACT_ADDRESS; // Deployed HumanVerifier address
     const contractAbi = [
       "function isHuman(address user) external view returns (bool)",
       "function registerHuman(uint256 root, uint256 nullifierHash, uint256[8] proof) external"
@@ -310,7 +312,7 @@
       
       try {
         // 1. Launch verification modal
-        const result = await verifyHumanity(userWalletAddress, "login");
+        const result = await verifyHumanity(userWalletAddress, window.APP_CONFIG.ACTION_ID || "login");
         
         // 2. Decode proof string into uint256[8] array for EVM
         const unpackedProof = ethers.AbiCoder.defaultAbiCoder().decode(
