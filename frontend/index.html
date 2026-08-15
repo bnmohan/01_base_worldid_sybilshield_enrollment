@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibePoll — SybilShield Enrollment</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Ethers.js v6 via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #060919;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #151c3f 0%, #060919 70%);
+      --card-bg: rgba(13, 20, 47, 0.45);
+      --border-color: rgba(99, 102, 241, 0.18);
+      --border-glow: rgba(99, 102, 241, 0.4);
+      --color-primary: #4f46e5;
+      --color-primary-light: #6366f1;
+      --color-accent: #00f2fe;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --color-success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: var(--bg-gradient);
+      background-attachment: fixed;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* Glassmorphism Card */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), 0 0 20px 2px rgba(99, 102, 241, 0.1);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-glow);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), 0 0 30px 4px rgba(99, 102, 241, 0.15);
+    }
+
+    .badge {
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      color: var(--color-accent);
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .btn-wallet {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      color: var(--color-primary-light);
+    }
+
+    .btn-wallet:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--color-primary-light);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.5);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .wallet-info {
+      background: rgba(6, 9, 25, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    /* Success State */
+    .success-container {
+      display: none;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .success-icon {
+      font-size: 54px;
+      color: var(--color-success);
+      margin-bottom: 16px;
+    }
+
+    .proof-data {
+      background: rgba(6, 9, 25, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 12px;
+      text-align: left;
+      color: var(--color-accent);
+      overflow-x: auto;
+      max-height: 150px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <!-- Active State Screen -->
+    <div id="active-state">
+      <span class="badge">Project 01 — Identity</span>
+      <h1>SybilShield Gateway</h1>
+      <p>Verify your humanity using World ID to authenticate your Ethereum wallet and unlock access to the Dadami enrollment portal.</p>
+      
+      <!-- Connect MetaMask Wallet -->
+      <button id="connect-wallet-btn" class="btn btn-wallet">Connect MetaMask Wallet</button>
+      <div id="wallet-info" class="wallet-info">Connected: 0x71C7656EC7ab88b098defB751B7401B5f6d8976F</div>
+
+      <!-- World ID Trigger -->
+      <button id="verify-humanity-btn" class="btn btn-primary" disabled>Verify with World ID</button>
+    </div>
+
+    <!-- Success State Screen -->
+    <div id="success-state" class="success-container">
+      <div class="success-icon">✓</div>
+      <h1>Human Verified</h1>
+      <p style="margin-bottom: 18px;">Your humanity has been cryptographically confirmed. Your wallet is now eligible for student admission!</p>
+      
+      <div class="proof-data">
+        <div style="color: var(--text-muted); margin-bottom: 4px;">// Cryptographic proof data:</div>
+        <div><strong>merkle_root:</strong> <span id="proof-root"></span></div>
+        <div><strong>nullifier_hash:</strong> <span id="proof-nullifier"></span></div>
+        <div style="margin-top: 6px; color: var(--color-success);">status: "Verified Real Human"</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- World ID IDKit ESM Import via CDN -->
+  <script type="module">
+    // 1. Reusable, plug-and-play verification service
+    async function verifyHumanity(walletAddress, actionId) {
+      let IDKit;
+      try {
+        const module = await import('https://cdn.jsdelivr.net/npm/@worldcoin/idkit@4.1.4/+esm');
+        IDKit = module.IDKit;
+      } catch (err) {
+        console.error("Failed to load World ID IDKit:", err);
+        alert("Failed to load World ID IDKit from CDN. Please check your internet connection or console errors.");
+        throw err;
+      }
+
+      return new Promise((resolve, reject) => {
+        // Initialize IDKit with settings
+        IDKit.init({
+          app_id: "app_staging_vibepoll", // Your World ID App ID
+          action: actionId,               // The specific action (protects against reuse)
+          signal: walletAddress,          // Locks proof to the user's wallet address
+          onSuccess: (result) => resolve(result),
+          onError: (error) => reject(error)
+        });
+        
+        // Open the modal
+        IDKit.open();
+      });
+    }
+
+    // 2. UI Controller & Contract Configs
+    const connectBtn = document.getElementById('connect-wallet-btn');
+    const walletInfo = document.getElementById('wallet-info');
+    const verifyBtn = document.getElementById('verify-humanity-btn');
+    const activeState = document.getElementById('active-state');
+    const successState = document.getElementById('success-state');
+    const proofRoot = document.getElementById('proof-root');
+    const proofNullifier = document.getElementById('proof-nullifier');
+
+    const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Deployed HumanVerifier address
+    const contractAbi = [
+      "function isHuman(address user) external view returns (bool)",
+      "function registerHuman(uint256 root, uint256 nullifierHash, uint256[8] proof) external"
+    ];
+
+    let userWalletAddress = null;
+
+    // Connect Wallet and check if already registered (2nd Time Login Check)
+    connectBtn.addEventListener('click', async () => {
+      if (!window.ethereum) {
+        alert("MetaMask or a Web3 wallet extension is required!");
+        return;
+      }
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        userWalletAddress = accounts[0];
+        
+        // Connect contract using reader
+        const contract = new ethers.Contract(contractAddress, contractAbi, provider);
+        const alreadyVerified = await contract.isHuman(userWalletAddress);
+
+        connectBtn.style.display = 'none';
+        walletInfo.innerText = `Connected: ${userWalletAddress}`;
+        walletInfo.style.display = 'block';
+
+        if (alreadyVerified) {
+          // Welcome back bypass flow
+          proofRoot.innerText = "Saved on-chain";
+          proofNullifier.innerText = "Saved on-chain";
+          
+          document.querySelector("#success-state p").innerText = "Welcome back! Your wallet is already verified on-chain. You are fully eligible for student admission.";
+          
+          activeState.style.display = 'none';
+          successState.style.display = 'block';
+        } else {
+          // Unregistered user: unlock verify button
+          verifyBtn.removeAttribute('disabled');
+      } catch (err) {
+        console.error("Wallet connection failed:", err);
+        alert("Wallet connection failed! Please make sure your MetaMask is connected to the local Anvil network (http://127.0.0.1:8545, Chain ID: 31337).\n\nDetails: " + (err.message || err));
+      }
+    });
+
+    // Trigger World ID Verification and write transaction to blockchain
+    verifyBtn.addEventListener('click', async () => {
+      if (!userWalletAddress) return;
+      
+      try {
+        // 1. Launch verification modal
+        const result = await verifyHumanity(userWalletAddress, "login");
+        
+        // 2. Decode proof string into uint256[8] array for EVM
+        const unpackedProof = ethers.AbiCoder.defaultAbiCoder().decode(
+          ["uint256[8]"], 
+          result.proof
+        )[0];
+
+        // 3. Prepare transaction objects
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, contractAbi, signer);
+
+        // 4. Submit transaction to Anvil and wait for verification confirmation
+        alert("Verification successful! Please sign the wallet transaction to register on-chain.");
+        const tx = await contract.registerHuman(
+          BigInt(result.merkle_root),
+          BigInt(result.nullifier_hash),
+          unpackedProof
+        );
+        await tx.wait();
+
+        // 5. Display success state
+        proofRoot.innerText = result.merkle_root.substring(0, 16) + "...";
+        proofNullifier.innerText = result.nullifier_hash.substring(0, 16) + "...";
+        
+        activeState.style.display = 'none';
+        successState.style.display = 'block';
+      } catch (error) {
+        console.error("Verification or transaction failed:", error);
+        alert(error.message || "Action failed.");
+      }
+    });
+  </script>
+</body>
+</html>

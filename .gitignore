@@ -1,0 +1,13 @@
+# Foundry build artifacts
+contracts/out/
+contracts/cache/
+contracts/lib/
+
+# Local configuration & keys
+contracts/.env
+
+# Node modules
+node_modules/
+
+# OS specific files
+.DS_Store
