@@ -1,7 +1,7 @@
 // Frontend Environment Configuration
 window.APP_CONFIG = {
   // Address of the deployed HumanVerifier contract
-  CONTRACT_ADDRESS: "your_deployed_contract_address_here",
+  CONTRACT_ADDRESS: "0xe3039e23BEa6693dBB28C9597e6dac71B6B1ABc4",
   
   // Target Network: Base Sepolia Testnet
   CHAIN_ID: "0x14a34", // 84532 in hex
@@ -11,5 +11,6 @@ window.APP_CONFIG = {
   
   // World ID Config
   APP_ID: "app_staging_vibepoll",
-  ACTION_ID: "login"
+  ACTION_ID: "login",
+  ENVIRONMENT: "staging"
 };

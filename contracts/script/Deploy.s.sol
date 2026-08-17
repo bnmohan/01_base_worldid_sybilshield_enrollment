@@ -8,15 +8,29 @@ import { IWorldID } from "../src/interfaces/IWorldID.sol";
 
 contract DeployScript is Script {
     function run() external returns (HumanVerifier) {
-        // Load private key from environment variable, default to Anvil private key
-        uint256 deployerPrivateKey = vm.envOr("PRIVATE_KEY", uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80));
+        // Exception handling: check if PRIVATE_KEY is defined in the environment
+        string memory privateKeyString = vm.envOr("PRIVATE_KEY", string(""));
+        if (bytes(privateKeyString).length == 0) {
+            revert("Deployment Error: PRIVATE_KEY environment variable is not defined or empty in your shell environment.");
+        }
+        
+        // Normalize the hex key by ensuring it has the "0x" prefix
+        bytes memory keyBytes = bytes(privateKeyString);
+        string memory normalizedKey;
+        if (keyBytes.length >= 2 && keyBytes[0] == "0" && keyBytes[1] == "x") {
+            normalizedKey = privateKeyString;
+        } else {
+            normalizedKey = string.concat("0x", privateKeyString);
+        }
+        
+        uint256 deployerPrivateKey = uint256(vm.parseBytes32(normalizedKey));
         
         // Base Sepolia World ID Router address
         address worldIdRouter = vm.envOr("WORLD_ID_ROUTER", address(0x42FF98C4E85212a5D31358ACbFe76a621b50fC02));
         
-        // World ID Parameters matching the frontend
-        string memory appId = "app_staging_vibepoll";
-        string memory actionId = "login";
+        // World ID Parameters matching the frontend, loaded from env
+        string memory appId = vm.envString("APP_ID");
+        string memory actionId = vm.envString("ACTION_ID");
         
         // Calculate externalNullifier using World ID hashing rules:
         // uint256(keccak256(abi.encodePacked(uint256(keccak256(abi.encodePacked(appId))) >> 8, actionId))) >> 8

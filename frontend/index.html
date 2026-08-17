@@ -14,6 +14,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
   <!-- Environment Config -->
   <script src="config.js"></script>
+  <!-- World ID Standalone SDK -->
+  <script src="https://unpkg.com/@worldcoin/idkit-standalone@2.2.5/build/index.global.js"></script>
 
   <style>
     :root {
@@ -223,32 +225,28 @@
     </div>
   </div>
 
-  <!-- World ID IDKit ESM Import via CDN -->
-  <script type="module">
+  <!-- World ID Integration Script -->
+  <script>
     // 1. Reusable, plug-and-play verification service
     async function verifyHumanity(walletAddress, actionId) {
-      let IDKit;
-      try {
-        const module = await import('https://cdn.jsdelivr.net/npm/@worldcoin/idkit@4.1.4/+esm');
-        IDKit = module.IDKit;
-      } catch (err) {
-        console.error("Failed to load World ID IDKit:", err);
-        alert("Failed to load World ID IDKit from CDN. Please check your internet connection or console errors.");
-        throw err;
-      }
-
       return new Promise((resolve, reject) => {
+        if (!window.IDKit) {
+          reject(new Error("World ID SDK not loaded yet."));
+          return;
+        }
+
         // Initialize IDKit with settings
-        IDKit.init({
+        window.IDKit.init({
           app_id: window.APP_CONFIG.APP_ID || "app_staging_vibepoll", // Your World ID App ID
           action: actionId || window.APP_CONFIG.ACTION_ID || "login",               // The specific action (protects against reuse)
           signal: walletAddress,          // Locks proof to the user's wallet address
+          environment: window.APP_CONFIG.ENVIRONMENT || "staging",                  // Loaded dynamically from config.js
           onSuccess: (result) => resolve(result),
           onError: (error) => reject(error)
         });
         
         // Open the modal
-        IDKit.open();
+        window.IDKit.open();
       });
     }
 
@@ -269,7 +267,7 @@
 
     let userWalletAddress = null;
 
-    // Connect Wallet and check if already registered (2nd Time Login Check)
+    // Connect Wallet and check if already registered
     connectBtn.addEventListener('click', async () => {
       if (!window.ethereum) {
         alert("MetaMask or a Web3 wallet extension is required!");
@@ -280,7 +278,6 @@
         const accounts = await provider.send("eth_requestAccounts", []);
         userWalletAddress = accounts[0];
         
-        // Connect contract using reader
         const contract = new ethers.Contract(contractAddress, contractAbi, provider);
         const alreadyVerified = await contract.isHuman(userWalletAddress);
 
@@ -289,7 +286,6 @@
         walletInfo.style.display = 'block';
 
         if (alreadyVerified) {
-          // Welcome back bypass flow
           proofRoot.innerText = "Saved on-chain";
           proofNullifier.innerText = "Saved on-chain";
           
@@ -300,9 +296,10 @@
         } else {
           // Unregistered user: unlock verify button
           verifyBtn.removeAttribute('disabled');
+        }
       } catch (err) {
         console.error("Wallet connection failed:", err);
-        alert("Wallet connection failed! Please make sure your MetaMask is connected to the local Anvil network (http://127.0.0.1:8545, Chain ID: 31337).\n\nDetails: " + (err.message || err));
+        alert("Wallet connection failed! Please make sure your MetaMask is connected to the local network or Base Sepolia.\n\nDetails: " + (err.message || err));
       }
     });
 
@@ -325,7 +322,7 @@
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(contractAddress, contractAbi, signer);
 
-        // 4. Submit transaction to Anvil and wait for verification confirmation
+        // 4. Submit transaction and wait for verification confirmation
         alert("Verification successful! Please sign the wallet transaction to register on-chain.");
         const tx = await contract.registerHuman(
           BigInt(result.merkle_root),
