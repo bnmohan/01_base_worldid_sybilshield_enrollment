@@ -118,15 +118,36 @@ cd contracts
 forge script script/Deploy.s.sol:DeployScript --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast --verify -vvvv
 ```
 
-### 3. Launching the Web Dapp
+## 🌐 Multi-Network Testing Guide
+
+Start the local web server:
 ```bash
-# Serve frontend folder via HTTP
 cd frontend
-python3 -m http.server 8000
+python3 -m http.server 8001
 ```
-Open **[http://localhost:8000](http://localhost:8000)** in Google Chrome, connect MetaMask to Base Sepolia, and interact with the ZK enrollment gateway!
+
+---
+
+### Option A: Test Live on Base Sepolia Testnet
+
+1. Open **[http://localhost:8001/?network=sepolia](http://localhost:8001/?network=sepolia)** in Chrome with MetaMask.
+2. In MetaMask, connect to **Base Sepolia** (`Chain ID: 84532`).
+3. Click **Connect MetaMask Wallet** $\rightarrow$ Click **Verify with World ID** to trigger the IDKit modal with your World App.
+
+---
+
+### Option B: Test Locally on Anvil Fork (Fast & Free)
+
+1. **Launch the local Anvil fork**:
+   ```bash
+   anvil --fork-url https://sepolia.base.org --chain-id 31337
+   ```
+2. Open **[http://localhost:8001/?network=anvil](http://localhost:8001/?network=anvil)** in Chrome with MetaMask.
+3. In MetaMask, select **Localhost 8545** (`Chain ID: 31337`).
+4. Connect using pre-funded test accounts to test verification against the preloaded contract state!
 
 ---
 
 ## 📜 License
 MIT License. Built with ❤️ for the Base Ecosystem.
+

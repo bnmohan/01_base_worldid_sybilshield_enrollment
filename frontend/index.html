@@ -52,6 +52,41 @@
       padding: 24px;
     }
 
+    /* Network Switcher Bar */
+    .network-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 8px 16px;
+      background: rgba(13, 20, 47, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 100px;
+      font-size: 13px;
+    }
+
+    .network-pill {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 12px;
+      border-radius: 100px;
+      transition: all 0.2s ease;
+    }
+
+    .network-pill:hover {
+      color: #fff;
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .network-pill.active {
+      background: rgba(0, 242, 254, 0.15);
+      border: 1px solid rgba(0, 242, 254, 0.4);
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+
     /* Glassmorphism Card */
     .card {
       background: var(--card-bg);
@@ -101,7 +136,7 @@
       color: var(--text-muted);
       font-size: 15px;
       line-height: 1.6;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
     /* Buttons */
@@ -156,10 +191,23 @@
       border-radius: 12px;
       padding: 12px;
       font-family: monospace;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-muted);
       margin-bottom: 24px;
       display: none;
+      word-break: break-all;
+    }
+
+    .network-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-family: monospace;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--color-accent);
+      margin-top: 6px;
     }
 
     /* Success State */
@@ -195,6 +243,13 @@
 </head>
 <body>
 
+  <!-- Multi-Network Switcher -->
+  <div class="network-bar">
+    <span style="color: var(--text-muted);">Network:</span>
+    <a id="link-sepolia" href="?network=sepolia" class="network-pill">Base Sepolia</a>
+    <a id="link-anvil" href="?network=anvil" class="network-pill">Anvil Local</a>
+  </div>
+
   <div class="card">
     <!-- Active State Screen -->
     <div id="active-state">
@@ -204,7 +259,10 @@
       
       <!-- Connect MetaMask Wallet -->
       <button id="connect-wallet-btn" class="btn btn-wallet">Connect MetaMask Wallet</button>
-      <div id="wallet-info" class="wallet-info">Connected: 0x71C7656EC7ab88b098defB751B7401B5f6d8976F</div>
+      <div id="wallet-info" class="wallet-info">
+        <div>Connected: <span id="user-addr-text">0x...</span></div>
+        <div id="active-network-badge" class="network-badge">Target: Base Sepolia</div>
+      </div>
 
       <!-- World ID Trigger -->
       <button id="verify-humanity-btn" class="btn btn-primary" disabled>Verify with World ID</button>
@@ -218,6 +276,7 @@
       
       <div class="proof-data">
         <div style="color: var(--text-muted); margin-bottom: 4px;">// Cryptographic proof data:</div>
+        <div><strong>network:</strong> <span id="proof-network"></span></div>
         <div><strong>merkle_root:</strong> <span id="proof-root"></span></div>
         <div><strong>nullifier_hash:</strong> <span id="proof-nullifier"></span></div>
         <div style="margin-top: 6px; color: var(--color-success);">status: "Verified Real Human"</div>
@@ -227,7 +286,19 @@
 
   <!-- World ID Integration Script -->
   <script>
-    // 1. Reusable, plug-and-play verification service
+    // 1. Resolve Active Network configuration
+    let currentNetwork = window.getActiveNetwork();
+
+    // Highlight active network pill in UI
+    const urlParams = new URLSearchParams(window.location.search);
+    const netParam = (urlParams.get('network') || '').toLowerCase();
+    if (netParam === 'anvil' || netParam === 'local' || netParam === '31337') {
+      document.getElementById('link-anvil').classList.add('active');
+    } else {
+      document.getElementById('link-sepolia').classList.add('active');
+    }
+
+    // 2. Reusable verification service
     async function verifyHumanity(walletAddress, actionId) {
       return new Promise((resolve, reject) => {
         if (!window.IDKit) {
@@ -235,31 +306,33 @@
           return;
         }
 
-        // Initialize IDKit with settings
+        // Initialize IDKit with resolved network settings
         window.IDKit.init({
-          app_id: window.APP_CONFIG.APP_ID || "app_staging_vibepoll", // Your World ID App ID
-          action: actionId || window.APP_CONFIG.ACTION_ID || "login",               // The specific action (protects against reuse)
-          signal: walletAddress,          // Locks proof to the user's wallet address
-          environment: window.APP_CONFIG.ENVIRONMENT || "staging",                  // Loaded dynamically from config.js
+          app_id: currentNetwork.APP_ID || window.APP_CONFIG.DEFAULT_APP_ID,
+          action: actionId || currentNetwork.ACTION_ID || window.APP_CONFIG.DEFAULT_ACTION_ID,
+          signal: walletAddress,
+          environment: currentNetwork.ENVIRONMENT || window.APP_CONFIG.DEFAULT_ENVIRONMENT,
           onSuccess: (result) => resolve(result),
           onError: (error) => reject(error)
         });
         
-        // Open the modal
+        // Open IDKit modal
         window.IDKit.open();
       });
     }
 
-    // 2. UI Controller & Contract Configs
+    // 3. UI Controller & Contract Configs
     const connectBtn = document.getElementById('connect-wallet-btn');
     const walletInfo = document.getElementById('wallet-info');
+    const userAddrText = document.getElementById('user-addr-text');
+    const networkBadge = document.getElementById('active-network-badge');
     const verifyBtn = document.getElementById('verify-humanity-btn');
     const activeState = document.getElementById('active-state');
     const successState = document.getElementById('success-state');
+    const proofNetwork = document.getElementById('proof-network');
     const proofRoot = document.getElementById('proof-root');
     const proofNullifier = document.getElementById('proof-nullifier');
 
-    const contractAddress = window.APP_CONFIG.CONTRACT_ADDRESS; // Deployed HumanVerifier address
     const contractAbi = [
       "function isHuman(address user) external view returns (bool)",
       "function registerHuman(uint256 root, uint256 nullifierHash, uint256[8] proof) external"
@@ -267,7 +340,7 @@
 
     let userWalletAddress = null;
 
-    // Connect Wallet and check if already registered
+    // Connect Wallet and check registration status
     connectBtn.addEventListener('click', async () => {
       if (!window.ethereum) {
         alert("MetaMask or a Web3 wallet extension is required!");
@@ -275,17 +348,29 @@
       }
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        
+        // Re-resolve active network based on wallet chain
+        currentNetwork = window.getActiveNetwork(network.chainId);
+
         const accounts = await provider.send("eth_requestAccounts", []);
         userWalletAddress = accounts[0];
         
-        const contract = new ethers.Contract(contractAddress, contractAbi, provider);
-        const alreadyVerified = await contract.isHuman(userWalletAddress);
+        const contract = new ethers.Contract(currentNetwork.CONTRACT_ADDRESS, contractAbi, provider);
+        let alreadyVerified = false;
+        try {
+          alreadyVerified = await contract.isHuman(userWalletAddress);
+        } catch (e) {
+          console.warn("Could not read isHuman status from contract:", e);
+        }
 
         connectBtn.style.display = 'none';
-        walletInfo.innerText = `Connected: ${userWalletAddress}`;
+        userAddrText.innerText = userWalletAddress;
+        networkBadge.innerText = `${currentNetwork.CHAIN_NAME} (${currentNetwork.CHAIN_ID})`;
         walletInfo.style.display = 'block';
 
         if (alreadyVerified) {
+          proofNetwork.innerText = currentNetwork.CHAIN_NAME;
           proofRoot.innerText = "Saved on-chain";
           proofNullifier.innerText = "Saved on-chain";
           
@@ -294,12 +379,11 @@
           activeState.style.display = 'none';
           successState.style.display = 'block';
         } else {
-          // Unregistered user: unlock verify button
           verifyBtn.removeAttribute('disabled');
         }
       } catch (err) {
         console.error("Wallet connection failed:", err);
-        alert("Wallet connection failed! Please make sure your MetaMask is connected to the local network or Base Sepolia.\n\nDetails: " + (err.message || err));
+        alert("Wallet connection failed! Please check your network and try again.\n\nDetails: " + (err.message || err));
       }
     });
 
@@ -309,7 +393,7 @@
       
       try {
         // 1. Launch verification modal
-        const result = await verifyHumanity(userWalletAddress, window.APP_CONFIG.ACTION_ID || "login");
+        const result = await verifyHumanity(userWalletAddress, currentNetwork.ACTION_ID || "login");
         
         // 2. Decode proof string into uint256[8] array for EVM
         const unpackedProof = ethers.AbiCoder.defaultAbiCoder().decode(
@@ -320,7 +404,7 @@
         // 3. Prepare transaction objects
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, contractAbi, signer);
+        const contract = new ethers.Contract(currentNetwork.CONTRACT_ADDRESS, contractAbi, signer);
 
         // 4. Submit transaction and wait for verification confirmation
         alert("Verification successful! Please sign the wallet transaction to register on-chain.");
@@ -332,6 +416,7 @@
         await tx.wait();
 
         // 5. Display success state
+        proofNetwork.innerText = currentNetwork.CHAIN_NAME;
         proofRoot.innerText = result.merkle_root.substring(0, 16) + "...";
         proofNullifier.innerText = result.nullifier_hash.substring(0, 16) + "...";
         
