@@ -9,7 +9,7 @@ window.APP_CONFIG = {
       RPC_URL: "https://base-sepolia-rpc.publicnode.com",
       BLOCK_EXPLORER: "https://sepolia.basescan.org",
       CONTRACT_ADDRESS: "0xe3039e23BEa6693dBB28C9597e6dac71B6B1ABc4",
-      APP_ID: "app_staging_vibepoll",
+      APP_ID: "app_90ae7b9bb264a71be4f6744af3e39649",
       ACTION_ID: "login",
       ENVIRONMENT: "staging"
     },
@@ -19,21 +19,21 @@ window.APP_CONFIG = {
       CHAIN_NAME: "Anvil Local Node",
       RPC_URL: "http://127.0.0.1:8545",
       BLOCK_EXPLORER: "https://sepolia.basescan.org",
-      CONTRACT_ADDRESS: "0xe3039e23BEa6693dBB28C9597e6dac71B6B1ABc4",
-      APP_ID: "app_staging_vibepoll",
+      CONTRACT_ADDRESS: "0x197a7e651FD9CD0b1b8011746B8aad7e37e652d7",
+      APP_ID: "app_90ae7b9bb264a71be4f6744af3e39649",
       ACTION_ID: "login",
       ENVIRONMENT: "staging"
     }
   },
 
   // World ID Config Defaults
-  DEFAULT_APP_ID: "app_staging_vibepoll",
+  DEFAULT_APP_ID: "app_90ae7b9bb264a71be4f6744af3e39649",
   DEFAULT_ACTION_ID: "login",
   DEFAULT_ENVIRONMENT: "staging"
 };
 
 // Dynamic network resolver (parses URL query ?network=anvil vs ?network=sepolia or connected wallet chainId)
-window.getActiveNetwork = function(chainId) {
+window.getActiveNetwork = function (chainId) {
   // 1. Check URL parameter (?network=anvil vs ?network=sepolia)
   if (typeof window !== 'undefined' && window.location && window.location.search) {
     const urlParams = new URLSearchParams(window.location.search);

@@ -126,25 +126,50 @@ cd frontend
 python3 -m http.server 8001
 ```
 
+### Environment Comparison Matrix
+
+| Environment | Smart Contract Used | World ID Router Type | Supported Client | Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **Anvil Local** (`?network=anvil`) | `HumanVerifier` + `MockWorldID` | Mock Verifier | **World ID Simulator** ([simulator.worldcoin.org](https://simulator.worldcoin.org)) | Fast local development without biometric hardware |
+| **Base Sepolia** (`?network=sepolia`) | `HumanVerifier` + Live Router | Live On-Chain Router (`0x42FF98C4...`) | **Real World App** (iOS / Android with Orb verification) | Production testnet validation with real biometric ZK proofs |
+
 ---
 
-### Option A: Test Live on Base Sepolia Testnet
-
-1. Open **[http://localhost:8001/?network=sepolia](http://localhost:8001/?network=sepolia)** in Chrome with MetaMask.
-2. In MetaMask, connect to **Base Sepolia** (`Chain ID: 84532`).
-3. Click **Connect MetaMask Wallet** $\rightarrow$ Click **Verify with World ID** to trigger the IDKit modal with your World App.
-
----
-
-### Option B: Test Locally on Anvil Fork (Fast & Free)
+### Option A: Test Locally on Anvil (Fast & Free with Simulator)
 
 1. **Launch the local Anvil fork**:
    ```bash
    anvil --fork-url https://sepolia.base.org --chain-id 31337
    ```
-2. Open **[http://localhost:8001/?network=anvil](http://localhost:8001/?network=anvil)** in Chrome with MetaMask.
-3. In MetaMask, select **Localhost 8545** (`Chain ID: 31337`).
-4. Connect using pre-funded test accounts to test verification against the preloaded contract state!
+2. **Deploy Local Contracts Automatically**:
+   ```bash
+   chmod +x setup.sh && ./setup.sh
+   ```
+   *(Or run `forge script script/DeployAnvil.s.sol:DeployAnvilScript --rpc-url http://127.0.0.1:8545 --broadcast` from `contracts/`)*
+3. **Start the Frontend**:
+   ```bash
+   cd frontend && python3 -m http.server 8001
+   ```
+4. Open **[http://localhost:8001/?network=anvil](http://localhost:8001/?network=anvil)** in Chrome with MetaMask.
+5. In MetaMask, connect to **Localhost 8545** (`Chain ID: 31337`).
+6. Click **"Verify with World ID"**, scan the QR code using the **World ID Simulator** on your phone ([simulator.worldcoin.org](https://simulator.worldcoin.org)), and sign the transaction to register on-chain!
+
+---
+
+### Option B: Test Live on Base Sepolia Testnet (Real World App)
+
+> [!NOTE]
+> The live Base Sepolia World ID router verifies Merkle roots published on-chain from real Orb verifications. If you scan with the simulator on Base Sepolia, the router will revert with `NonExistentRoot()`. For Base Sepolia, scan with the real **World App** on your phone.
+
+1. **Deploy to Base Sepolia**:
+   ```bash
+   cd contracts
+   forge script script/Deploy.s.sol:DeployScript --rpc-url https://sepolia.base.org --broadcast --verify -vvvv
+   ```
+2. Update the `0x14a34` `CONTRACT_ADDRESS` in `frontend/config.js` with the deployed address.
+3. Open **[http://localhost:8001/?network=sepolia](http://localhost:8001/?network=sepolia)** in Chrome.
+4. In MetaMask, connect to **Base Sepolia** (`Chain ID: 84532`).
+5. Scan the QR code using the **real World App** on your phone to complete on-chain verification!
 
 ---
 

@@ -14,8 +14,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
   <!-- Environment Config -->
   <script src="config.js"></script>
-  <!-- World ID Standalone SDK -->
-  <script src="https://unpkg.com/@worldcoin/idkit-standalone@2.2.5/build/index.global.js"></script>
+  <!-- World ID Standalone SDK (Patched for Simulator Environment) -->
+  <script src="idkit-standalone.js"></script>
 
   <style>
     :root {
@@ -400,6 +400,7 @@
           ["uint256[8]"], 
           result.proof
         )[0];
+        const proofArray = Array.from(unpackedProof);
 
         // 3. Prepare transaction objects
         const provider = new ethers.BrowserProvider(window.ethereum);
@@ -411,7 +412,7 @@
         const tx = await contract.registerHuman(
           BigInt(result.merkle_root),
           BigInt(result.nullifier_hash),
-          unpackedProof
+          proofArray
         );
         await tx.wait();
 

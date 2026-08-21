@@ -26,6 +26,27 @@ if [ -d contracts ]; then
   
   echo "🔨 Compiling smart contracts..."
   forge build
+
+  # 4. Check if Anvil is running on port 8545 and auto-deploy
+  if nc -z 127.0.0.1 8545 2>/dev/null || curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://127.0.0.1:8545 >/dev/null 2>&1; then
+    echo "⚡ Detected active Anvil node on http://127.0.0.1:8545. Deploying local contracts..."
+    DEPLOY_OUT=$(forge script script/DeployAnvil.s.sol:DeployAnvilScript --rpc-url http://127.0.0.1:8545 --broadcast)
+    ANVIL_ADDR=$(echo "$DEPLOY_OUT" | grep "HumanVerifier deployed to:" | awk '{print $NF}' | tail -n 1)
+    
+    if [ -n "$ANVIL_ADDR" ]; then
+      echo "🎯 HumanVerifier deployed on Anvil: $ANVIL_ADDR"
+      cd ..
+      # Update Anvil CONTRACT_ADDRESS in frontend/config.js
+      sed -i.bak "s|CONTRACT_ADDRESS: \".*\"|CONTRACT_ADDRESS: \"$ANVIL_ADDR\"|g" frontend/config.js 2>/dev/null || \
+      sed -i "" "s|CONTRACT_ADDRESS: \".*\"|CONTRACT_ADDRESS: \"$ANVIL_ADDR\"|g" frontend/config.js
+      rm -f frontend/config.js.bak
+      echo "✅ Updated frontend/config.js with Anvil contract address: $ANVIL_ADDR"
+      cd contracts
+    fi
+  else
+    echo "ℹ️  Anvil is not running yet. Run 'anvil --fork-url https://sepolia.base.org --chain-id 31337' and rerun setup to deploy automatically."
+  fi
+
   cd ..
 fi
 
